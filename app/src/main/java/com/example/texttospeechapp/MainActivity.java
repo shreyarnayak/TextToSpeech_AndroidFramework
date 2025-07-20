@@ -21,6 +21,13 @@ import java.util.*;
 import android.os.Build;
 import android.Manifest;
 
+import java.net.URL;
+import java.net.HttpURLConnection;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import org.json.JSONObject;
+
 
 public class MainActivity extends AppCompatActivity {
     EditText editText;
@@ -62,9 +69,54 @@ public class MainActivity extends AppCompatActivity {
         btnSelectFile.setOnClickListener(v -> openFile());
         btnPlay.setOnClickListener(v -> {
             String text = editText.getText().toString();
-            tts.setSpeechRate(speed);
-            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null);
+
+            final Locale ttsLocale;
+            final String targetLangCode;
+
+            int selectedLang = languageSpinner.getSelectedItemPosition();
+
+            switch (selectedLang) {
+                case 0:
+                    targetLangCode = "en";
+                    ttsLocale = Locale.ENGLISH;
+                    break;
+                case 1:
+                    targetLangCode = "fr";
+                    ttsLocale = Locale.FRENCH;
+                    break;
+                case 2:
+                    targetLangCode = "de";
+                    ttsLocale = Locale.GERMAN;
+                    break;
+                case 3:
+                    targetLangCode = "hi";
+                    ttsLocale = new Locale("hi", "IN");
+                    break;
+                case 4:
+                    targetLangCode = "kn";
+                    ttsLocale = new Locale("kn", "IN");
+                    break;
+                default:
+                    targetLangCode = "en";
+                    ttsLocale = Locale.ENGLISH;
+            }
+
+            translateText(text, targetLangCode, translated -> {
+                if (translated != null) {
+                    int result = tts.setLanguage(ttsLocale);
+                    if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        Toast.makeText(MainActivity.this, "Selected language is not supported", Toast.LENGTH_SHORT).show();
+                    } else {
+                        tts.setSpeechRate(speed);
+                        tts.speak(translated, TextToSpeech.QUEUE_FLUSH, null, null);
+                    }
+                } else {
+                    Toast.makeText(MainActivity.this, "Translation failed", Toast.LENGTH_SHORT).show();
+                }
+            });
         });
+
+
         btnStop.setOnClickListener(v -> tts.stop());
         btnSaveMp3.setOnClickListener(v -> saveAsMp3());
 
@@ -119,7 +171,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void saveAsMp3() {
-        String text = editText.getText().toString();
+        final String text = editText.getText().toString();
+
         if (text.isEmpty()) {
             Toast.makeText(this, "Text is empty", Toast.LENGTH_SHORT).show();
             return;
@@ -137,20 +190,42 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void setupLanguageSpinner() {
-        List<String> langs = Arrays.asList("English", "French", "German");
+        List<String> langs = Arrays.asList("English", "French", "German", "Hindi", "Kannada");
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, langs);
         languageSpinner.setAdapter(adapter);
 
         languageSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Locale selectedLocale;
                 switch (position) {
-                    case 0: tts.setLanguage(Locale.ENGLISH); break;
-                    case 1: tts.setLanguage(Locale.FRENCH); break;
-                    case 2: tts.setLanguage(Locale.GERMAN); break;
+                    case 0: selectedLocale = Locale.ENGLISH;
+                        break;
+                    case 1: selectedLocale = Locale.FRENCH;
+                        break;
+                    case 2: selectedLocale = Locale.GERMAN;
+                        break;
+                    case 3: selectedLocale = new Locale("hi", "IN");  // Hindi
+                        break;
+                    case 4: selectedLocale = new Locale("kn", "IN");  // Kannada
+                        break;
+                    default: selectedLocale = Locale.ENGLISH;
+                }
+
+                int availability = tts.isLanguageAvailable(selectedLocale);
+                if (availability >= TextToSpeech.LANG_AVAILABLE) {
+                    tts.setLanguage(selectedLocale);
+                } else {
+                    Toast.makeText(MainActivity.this, selectedLocale.getDisplayLanguage() + " not supported on this device", Toast.LENGTH_SHORT).show();
                 }
             }
-            @Override public void onNothingSelected(AdapterView<?> parent) {}
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // Do nothing
+            }
         });
+
     }
 
     @Override
@@ -161,5 +236,52 @@ public class MainActivity extends AppCompatActivity {
         }
         super.onDestroy();
     }
+
+
+    // TranslationCallback interface
+    interface TranslationCallback {
+        void onTranslated(String translatedText);
+    }
+
+    // Translation method
+    private void translateText(String inputText, String targetLang, TranslationCallback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://libretranslate.com/translate");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true);
+
+                String jsonInput = "{\"q\":\"" + inputText + "\",\"source\":\"auto\",\"target\":\"" + targetLang + "\"}";
+                OutputStream os = conn.getOutputStream();
+                os.write(jsonInput.getBytes());
+                os.flush();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) result.append(line);
+
+                reader.close();
+                conn.disconnect();
+
+                // Extract the translated text from response
+                String json = result.toString();
+                JSONObject jsonObject = new JSONObject(json);
+                String translated = jsonObject.getString("translatedText");
+
+
+                runOnUiThread(() -> callback.onTranslated(translated));
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() -> callback.onTranslated(null));
+            }
+        }).start();
+    }
+
+
+
 
 }
