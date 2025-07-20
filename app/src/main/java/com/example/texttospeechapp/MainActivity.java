@@ -101,19 +101,32 @@ public class MainActivity extends AppCompatActivity {
                     ttsLocale = Locale.ENGLISH;
             }
 
-            translateText(text, targetLangCode, translated -> {
-                if (translated != null) {
-                    int result = tts.setLanguage(ttsLocale);
-                    if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                        Toast.makeText(MainActivity.this, "Selected language is not supported", Toast.LENGTH_SHORT).show();
-                    } else {
-                        tts.setSpeechRate(speed);
-                        tts.speak(translated, TextToSpeech.QUEUE_FLUSH, null, null);
-                    }
-                } else {
-                    Toast.makeText(MainActivity.this, "Translation failed", Toast.LENGTH_SHORT).show();
-                }
-            });
+            if (targetLangCode.equals("en")) {
+    // English selected — no need to translate
+    int result = tts.setLanguage(ttsLocale);
+    if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+        Toast.makeText(MainActivity.this, "Selected language is not supported", Toast.LENGTH_SHORT).show();
+    } else {
+        tts.setSpeechRate(speed);
+        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null);
+    }
+} else {
+    // Translation needed
+    translateText(text, targetLangCode, translated -> {
+        if (translated != null) {
+            int result = tts.setLanguage(ttsLocale);
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Toast.makeText(MainActivity.this, "Selected language is not supported", Toast.LENGTH_SHORT).show();
+            } else {
+                tts.setSpeechRate(speed);
+                tts.speak(translated, TextToSpeech.QUEUE_FLUSH, null, null);
+            }
+        } else {
+            Toast.makeText(MainActivity.this, "Translation failed", Toast.LENGTH_SHORT).show();
+        }
+    });
+}
+
         });
 
 
