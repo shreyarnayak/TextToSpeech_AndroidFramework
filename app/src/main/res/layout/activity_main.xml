@@ -65,10 +65,20 @@
                 android:max="100"
                 android:progress="50" />
 
+            <Button
+                android:id="@+id/btnSavedFiles"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Open Saved Files"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="10dp"/>
+
+
             <Spinner
                 android:id="@+id/languageSpinner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
+
 
         </LinearLayout>
     </ScrollView>
