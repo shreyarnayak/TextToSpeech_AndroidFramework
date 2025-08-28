@@ -20,11 +20,12 @@ This project is an **Android Text-to-Speech (TTS) application** that converts te
 
 ## 2. Features
 
-🔊 Convert text input into natural-sounding speech.
-📑 Extract and read text from **PDF files**.
-🌐 **Translate text** into multiple languages before playback.
-⏸️ Pause and ▶️ Resume speech playback.
-📱 Simple, lightweight, and mobile-friendly design.
+1. Convert text input into natural-sounding speech.
+2. Extract and read text from **PDF files**.
+3. **Translate text** into multiple languages before playback.
+4. Pause and ▶️ Resume speech playback.
+5. Can listen to the saved audios.
+6. Simple, lightweight, and mobile-friendly design.
 
 ---
 
@@ -57,7 +58,7 @@ TextToSpeechApp/
 * Clone the repository:
 
   ```bash
-  git clone https://github.com/your-username/TextToSpeechApp.git
+  git clone https://github.com/shreyarnayak/TextToSpeechApp.git
   ```
 * Open in **Android Studio**.
 * Sync Gradle dependencies.
